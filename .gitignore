@@ -1,0 +1,4 @@
+build/
+temp/
+public/
+node_modules/
