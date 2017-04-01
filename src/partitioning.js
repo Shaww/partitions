@@ -403,17 +403,32 @@ function minHitsProbability (types, slots, minHits) {
 }
 
 
-/*
- * Returns a distributions array from an slots array and the number of items to
- * distribute. 'slots' array represents the max. number of items that can
- * exists in that partition. We are trying to fill the partitions with n items
- * filling the leftmost partition first before moving to the next partition when
- * full.
+/**
+ * @summary - Returns a distributions array(Integer Array) whose value at each
+ * index represents how many of the given items are placed inside that current
+ * partition.
+ *
+ * > [2, 1, 0] // this distributions array has 2 items in the first partition
+ *	       // and 1 in the second. This represents how 3 items given are
+ *	       // to be distributed. Only 2 items can exists in the first
+ *	       // partition(this is constrained by the slots composition array
+ *	       // given) 
+ *
+ * @function
+ * @public
+ *
+ * @params {Integer} n - The number of items to distribute among the partitions.
+ * @params {Integer []} composition - An array whose value at index i represents
+ *  the maximium number of items that can exist inside parition i.
+ *
+ * @returns {Integer []}
  */
-function distribute (n, comp) {
+function distribute (n, composition) {
   let left = n
 
-  return comp.reduce((distribution, slots) => {
+  // slots represents the maximium number of items that can be held inside a
+  // partitular partition.
+  return composition.reduce((distribution, slots) => {
     if (left > 0) {
       let diff = slots - left
 
@@ -435,149 +450,58 @@ function distribute (n, comp) {
 }
 
 
-// Returns the index of the rightmost partition with items in it.
-function rightMostPartition (partitions) {
-  let _rm = 0, len = partitions.length, i
+/**
+ * @summary - Returns the index of rightmost/highest/largest partition with
+ * items in it. A partition has items in it if it has a value greater than 0.
+ *
+ * > [2, 0, 1, 0, 0]  // rightmost index is 2(zero-indexed)
+ *
+ * @function
+ * @public
+ *
+ * @param {Integer []} distribution - How items(hits) are distributed. Each
+ *  index is a partition, and the value at that index(partition) represents the
+ *  number of items in it(partition)
+ *
+ * @returns Integer
+ */
+function rightMostPartition (distribution) {
+  let rightmost	= -1
+  const len	=distribution.length
 
-  for (i=0; i<len; i++) {
-    if (partitions[i] === 0) break
+  for(const i=len-1; i>=0; i--) {
+    const n = distribution[i] 
+
+    if (n > 0) {
+      rightmost = i 
+      break
+    } 
   }
 
-  return ((_rm = i - 1) > 0) ? _rm : 0
+  if (rightmost === -1) {
+    throw Error('Unable to find rightmost index. Out of bounds error.') 
+  }
+
+  return rightmost
 }
 
 
 
 // testing
 
-// returns a list of permutations with duplicate permutations removed.
-function uniquePermutations (permutations) {
-  let encoded = permutations.map((p) => p.join(' ')),
-      set     = new Set(encoded),
-      uniques = []
+/**
+  *let s3    = [4, 2, 12, 8]
+  *let t3    = [1, 2, 3, 4]
+  *let prob3 = minHitsProbability(t3, s3, 10)
+  *
+  *console.log(prob3)
+  *
+  *
+  *let s4    = [50, 18, 6]
+  *let t4    = [2, 3, 4]
+  *let prob4 = minHitsProbability(t4, s4, 30)
+  *
+  *console.log(prob4)
+  */
 
-  for (let x of set.values()) {
-    uniques.push(x)
-  }
-  return uniques
-}
-
-
-// converts seq of H's and M's to distributions array
-function seqToDist (slots, seq) {
-  let seqPartitions = [], len = slots.length, c = 0
-
-  for (let j=0; j<len; j++) {
-    let hitCount = 0, n = slots[j]
-
-    for (let i=c; i<(c+n); i++) {
-      let event = seq[i]
-
-      if (event === 'H') {
-        hitCount += 1
-      }
-    }
-
-    seqPartitions[j] = hitCount
-    c += n
-  }
-
-  return seqPartitions
-}
-
-
-// returns the number of elements in a given sequence that are 'H' elements.
-function headCount (sequence) {
-  return sequence.filter((ele) => ele === 'H').length
-}
-
-
-// returns a distributions array from a sequence. We are partitioning a
-// sequence.
-function sequencesToPartitions (slots, distribution) {
-  let n     = slots.reduce((sum, _n) => sum + _n),
-      hits  = distribution.reduce((sum, _n) => sum + _n),
-      s     = sequences(['H', 'M'], n),
-      fs    = s.filter((s) => headCount(s) === hits),
-      ds    = fs.map((s) => seqToDist(slots, s)),
-      es    = ds.map((d) => d.join('')),
-      ues   = new Set(es),
-      uds   = []
-
-  for (let ue of ues) {
-    uds.push(Array.from(ue))
-  }
-
-  return uds.map((ud) => partitionString(ud))
-}
-
-
-// returns the number of targets in a sequence based on a given predicate.
-function targetCount (seq, pred) {
-  let count = 0, _seq
-
-  _seq  = seq.filter(pred)
-  count = _seq.length
-
-  return count
-}
-
-
-// returns true if given element is in a list of elements
-function ele (elements, target) {
-  return elements.reduce((truth, element) => truth || (target === element), false)
-}
-
-
-// let s1    = [3, 2, 2]
-// let t1    = [1, 2, 3]
-// let prob1 = 0
-
-// for (let i=3; i<=7; i++) {
-//   prob1 += hitsProbability(t1, s1, i)
-// }
-
-// console.log(prob1)
-
-
-// let s2    = [3, 4, 4]
-// let t2    = [1, 2, 3]
-// let prob2 = 0
-
-// for (let i=4; i<=11; i++) {
-//   prob2 += hitsProbability(t2, s2, i)
-// }
-
-// console.log(prob2)
-
-
-let s3    = [4, 2, 12, 8]
-let t3    = [1, 2, 3, 4]
-let prob3 = minHitsProbability(t3, s3, 10)
-
-console.log(prob3)
-
-
-let s4    = [50, 18, 6]
-let t4    = [2, 3, 4]
-let prob4 = minHitsProbability(t4, s4, 30)
-
-console.log(prob4)
-
-
-
-// let x   = sequences(['X1', 'X2', 'X3', 'X4', 'X5', 'X6'], 2)
-// let y   = sequences(['Y1', 'Y2', 'Y3'], 2, x)
-// let z   = sequences(['Z1', 'Z2'], 3, y)
-// let j   = sequences(['J1', 'J2', 'J3', 'J4', 'J5', 'J6'], 3, z)
-
-// let s1predicate = (e) => e === 'X1' || e === 'Y1'  || e === 'Z1' || ele(['J1', 'J2', 'J3', 'J4'], e)
-// let count = 0
-
-// for(let i=4; i<=10; i++) {
-//   let fs = j.filter((seq) => targetCount(seq, s1predicate) === i)
-
-//   count += fs.length
-// }
-
-// console.log(count / j.length)
+export {minHitsProbability}
